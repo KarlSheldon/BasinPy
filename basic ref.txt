@@ -1,0 +1,636 @@
+from enum import IntEnum, IntFlag, auto
+from dataclasses import dataclass
+
+
+class TokenType(IntEnum):
+    # Statements
+    STMT_END       = 1
+    STMT_STOP      = 2
+    STMT_RUN       = 3
+    STMT_GOTO      = 4
+    STMT_GOSUB     = 5
+    STMT_RETURN    = 6
+    STMT_FOR       = 7
+    STMT_NEXT      = 8
+    STMT_IF        = 9
+    STMT_REM       = 10
+    STMT_PRINT     = 11
+    STMT_INPUT     = 12
+    STMT_LET       = 13
+    STMT_DIM       = 14
+    STMT_DATA      = 15
+    STMT_READ      = 16
+    STMT_RESTORE   = 17
+    STMT_ON        = 18
+    STMT_RANDOMIZE = 19
+    STMT_DEF_FN    = 20
+    STMT_DEF_PROC  = 21
+    STMT_PROC_CALL = 22
+    STMT_WHILE     = 23
+    STMT_WEND      = 24
+    STMT_REPEAT    = 25
+    STMT_UNTIL     = 26
+    STMT_TRACE     = 27
+    STMT_NOTRACE   = 28
+    STMT_LOAD      = 29
+    STMT_SAVE      = 30
+    STMT_LIST      = 31
+    STMT_CLEAR     = 32
+    STMT_FILES     = 33
+    STMT_OPEN      = 34
+    STMT_CLOSE     = 35
+    STMT_WRITE     = 36
+    STMT_ERROR     = 37
+    STMT_ERASE     = 38
+    STMT_SWAP      = 39
+    STMT_LOCATE    = 40
+    STMT_CLS       = 41
+    STMT_COLOR     = 42
+    STMT_SCREEN    = 43
+    STMT_MODE      = 44
+    STMT_WINDOW    = 45
+    STMT_VIEW      = 46
+    STMT_PLOT      = 47
+    STMT_PSET      = 48
+    STMT_LINE      = 49
+    STMT_CIRCLE    = 50
+    STMT_PAINT     = 51
+    STMT_DRAW      = 52
+    STMT_SOUND     = 53
+    STMT_BEEP      = 54
+    STMT_WAIT      = 55
+    STMT_OUT       = 56
+    STMT_POKE      = 57
+    STMT_CALL      = 58
+    STMT_USR       = 59
+    STMT_BREAK     = 60
+    STMT_EDIT      = 61
+    STMT_QUIT      = 62
+    STMT_ZAP       = 63
+
+    # Functions
+    FUNC_ABS       = 100
+    FUNC_ASC       = 101
+    FUNC_ATN       = 102
+    FUNC_COS       = 103
+    FUNC_EXP       = 104
+    FUNC_INT       = 105
+    FUNC_LEN       = 106
+    FUNC_LOG       = 107
+    FUNC_RND       = 108
+    FUNC_SGN       = 109
+    FUNC_SIN       = 110
+    FUNC_SQR       = 111
+    FUNC_TAN       = 112
+    FUNC_VAL       = 113
+    FUNC_LEFT$     = 114
+    FUNC_RIGHT$    = 115
+    FUNC_MID$      = 116
+    FUNC_STR$      = 117
+    FUNC_SPACE$    = 118
+    FUNC_STRING$   = 119
+    FUNC_CHR$      = 120
+    FUNC_INSTR     = 121
+    FUNC_HEX$      = 122
+    FUNC_BIN$      = 123
+    FUNC_FIX       = 124
+    FUNC_EOF       = 125
+    FUNC_FRE       = 126
+    FUNC_TIME      = 127
+    FUNC_INKEY$    = 128
+    FUNC_PEEK      = 129
+    FUNC_FN_CALL   = 130
+    FUNC_USR_CALL  = 131
+
+    # Operators / special
+    OP_AND         = 200
+    OP_OR          = 201
+    OP_NOT         = 202
+    OP_XOR         = 203
+    OP_TO          = 204
+    OP_STEP        = 205
+    OP_THEN        = 206
+    OP_TAB         = 207
+    OP_SPC         = 208
+    OP_USING       = 209
+    OP_PAPER       = 210
+    OP_GRAPHICS    = 211
+    OP_VDU         = 212
+    OP_ENV         = 213
+    OP_KEY         = 214
+    OP_JOY         = 215
+    OP_NULL        = 216
+
+
+class Dialect(IntFlag):
+    MS_BASIC   = auto()   # Microsoft / GW / BASICA
+    QBASIC     = auto()   # QBasic / QuickBASIC
+    QB64       = auto()
+    BBC        = auto()
+    SINCLAIR   = auto()
+    COMMODORE  = auto()
+    MSX        = auto()
+    AMIGA      = auto()
+    DARTMOUTH  = auto()
+
+
+@dataclass(frozen=True)
+class TokenInfo:
+    code: int
+    type: TokenType
+    dialects: Dialect
+    keyword: str
+    is_statement: bool = False
+    is_function: bool = False
+    is_operator: bool = False
+
+
+TOKENS: dict[str, TokenInfo] = {
+    # --- Core statements ---
+    "END": TokenInfo(TokenType.STMT_END, TokenType.STMT_END,
+                     Dialect.MS_BASIC | Dialect.QBASIC | Dialect.BBC |
+                     Dialect.SINCLAIR | Dialect.COMMODORE | Dialect.MSX,
+                     "END", is_statement=True),
+
+    "STOP": TokenInfo(TokenType.STMT_STOP, TokenType.STMT_STOP,
+                      Dialect.MS_BASIC | Dialect.QBASIC | Dialect.BBC |
+                      Dialect.SINCLAIR | Dialect.COMMODORE,
+                      "STOP", is_statement=True),
+
+    "RUN": TokenInfo(TokenType.STMT_RUN, TokenType.STMT_RUN,
+                     Dialect.MS_BASIC | Dialect.QBASIC | Dialect.BBC |
+                     Dialect.SINCLAIR | Dialect.COMMODORE,
+                     "RUN", is_statement=True),
+
+    "GOTO": TokenInfo(TokenType.STMT_GOTO, TokenType.STMT_GOTO,
+                      Dialect.MS_BASIC | Dialect.QBASIC | Dialect.BBC |
+                      Dialect.SINCLAIR | Dialect.COMMODORE | Dialect.MSX,
+                      "GOTO", is_statement=True),
+
+    "GOSUB": TokenInfo(TokenType.STMT_GOSUB, TokenType.STMT_GOSUB,
+                       Dialect.MS_BASIC | Dialect.QBASIC | Dialect.BBC |
+                       Dialect.SINCLAIR | Dialect.COMMODORE,
+                       "GOSUB", is_statement=True),
+
+    "RETURN": TokenInfo(TokenType.STMT_RETURN, TokenType.STMT_RETURN,
+                        Dialect.MS_BASIC | Dialect.QBASIC | Dialect.BBC |
+                        Dialect.SINCLAIR | Dialect.COMMODORE,
+                        "RETURN", is_statement=True),
+
+    "FOR": TokenInfo(TokenType.STMT_FOR, TokenType.STMT_FOR,
+                     Dialect.MS_BASIC | Dialect.QBASIC | Dialect.BBC |
+                     Dialect.SINCLAIR | Dialect.COMMODORE | Dialect.MSX,
+                     "FOR", is_statement=True),
+
+    "NEXT": TokenInfo(TokenType.STMT_NEXT, TokenType.STMT_NEXT,
+                      Dialect.MS_BASIC | Dialect.QBASIC | Dialect.BBC |
+                      Dialect.SINCLAIR | Dialect.COMMODORE | Dialect.MSX,
+                      "NEXT", is_statement=True),
+
+    "IF": TokenInfo(TokenType.STMT_IF, TokenType.STMT_IF,
+                    Dialect.MS_BASIC | Dialect.QBASIC | Dialect.BBC |
+                    Dialect.SINCLAIR | Dialect.COMMODORE | Dialect.MSX,
+                    "IF", is_statement=True),
+
+    "REM": TokenInfo(TokenType.STMT_REM, TokenType.STMT_REM,
+                     Dialect.MS_BASIC | Dialect.QBASIC | Dialect.BBC |
+                     Dialect.SINCLAIR | Dialect.COMMODORE | Dialect.MSX,
+                     "REM", is_statement=True),
+
+    "PRINT": TokenInfo(TokenType.STMT_PRINT, TokenType.STMT_PRINT,
+                       Dialect.MS_BASIC | Dialect.QBASIC | Dialect.BBC |
+                       Dialect.SINCLAIR | Dialect.COMMODORE | Dialect.MSX,
+                       "PRINT", is_statement=True),
+
+    "INPUT": TokenInfo(TokenType.STMT_INPUT, TokenType.STMT_INPUT,
+                       Dialect.MS_BASIC | Dialect.QBASIC | Dialect.BBC |
+                       Dialect.SINCLAIR | Dialect.COMMODORE | Dialect.MSX,
+                       "INPUT", is_statement=True),
+
+    "LET": TokenInfo(TokenType.STMT_LET, TokenType.STMT_LET,
+                     Dialect.MS_BASIC | Dialect.QBASIC | Dialect.BBC |
+                     Dialect.SINCLAIR | Dialect.COMMODORE | Dialect.MSX,
+                     "LET", is_statement=True),
+
+    "DIM": TokenInfo(TokenType.STMT_DIM, TokenType.STMT_DIM,
+                     Dialect.MS_BASIC | Dialect.QBASIC | Dialect.BBC |
+                     Dialect.SINCLAIR | Dialect.COMMODORE | Dialect.MSX,
+                     "DIM", is_statement=True),
+
+    "DATA": TokenInfo(TokenType.STMT_DATA, TokenType.STMT_DATA,
+                      Dialect.MS_BASIC | Dialect.QBASIC | Dialect.BBC |
+                      Dialect.SINCLAIR | Dialect.COMMODORE | Dialect.MSX,
+                      "DATA", is_statement=True),
+
+    "READ": TokenInfo(TokenType.STMT_READ, TokenType.STMT_READ,
+                      Dialect.MS_BASIC | Dialect.QBASIC | Dialect.BBC |
+                      Dialect.SINCLAIR | Dialect.COMMODORE | Dialect.MSX,
+                      "READ", is_statement=True),
+
+    "RESTORE": TokenInfo(TokenType.STMT_RESTORE, TokenType.STMT_RESTORE,
+                         Dialect.MS_BASIC | Dialect.QBASIC | Dialect.BBC,
+                         "RESTORE", is_statement=True),
+
+    "ON": TokenInfo(TokenType.STMT_ON, TokenType.STMT_ON,
+                    Dialect.MS_BASIC | Dialect.QBASIC | Dialect.BBC |
+                    Dialect.SINCLAIR,
+                    "ON", is_statement=True),
+
+    "RANDOMIZE": TokenInfo(TokenType.STMT_RANDOMIZE, TokenType.STMT_RANDOMIZE,
+                           Dialect.MS_BASIC | Dialect.QBASIC,
+                           "RANDOMIZE", is_statement=True),
+
+    "DEF FN": TokenInfo(TokenType.STMT_DEF_FN, TokenType.STMT_DEF_FN,
+                        Dialect.MS_BASIC | Dialect.QBASIC | Dialect.BBC,
+                        "DEF FN", is_statement=True),
+
+    "DEF PROC": TokenInfo(TokenType.STMT_DEF_PROC, TokenType.STMT_DEF_PROC,
+                          Dialect.BBC,
+                          "DEF PROC", is_statement=True),
+
+    "WHILE": TokenInfo(TokenType.STMT_WHILE, TokenType.STMT_WHILE,
+                       Dialect.BBC | Dialect.QBASIC,
+                       "WHILE", is_statement=True),
+
+    "WEND": TokenInfo(TokenType.STMT_WEND, TokenType.STMT_WEND,
+                      Dialect.QBASIC,
+                      "WEND", is_statement=True),
+
+    "REPEAT": TokenInfo(TokenType.STMT_REPEAT, TokenType.STMT_REPEAT,
+                        Dialect.BBC,
+                        "REPEAT", is_statement=True),
+
+    "UNTIL": TokenInfo(TokenType.STMT_UNTIL, TokenType.STMT_UNTIL,
+                       Dialect.BBC,
+                       "UNTIL", is_statement=True),
+
+    "TRACE": TokenInfo(TokenType.STMT_TRACE, TokenType.STMT_TRACE,
+                       Dialect.BBC,
+                       "TRACE", is_statement=True),
+
+    "NOTRACE": TokenInfo(TokenType.STMT_NOTRACE, TokenType.STMT_NOTRACE,
+                         Dialect.BBC,
+                         "NOTRACE", is_statement=True),
+
+    "LOAD": TokenInfo(TokenType.STMT_LOAD, TokenType.STMT_LOAD,
+                      Dialect.MS_BASIC | Dialect.BBC | Dialect.SINCLAIR |
+                      Dialect.COMMODORE,
+                      "LOAD", is_statement=True),
+
+    "SAVE": TokenInfo(TokenType.STMT_SAVE, TokenType.STMT_SAVE,
+                      Dialect.MS_BASIC | Dialect.BBC | Dialect.SINCLAIR |
+                      Dialect.COMMODORE,
+                      "SAVE", is_statement=True),
+
+    "LIST": TokenInfo(TokenType.STMT_LIST, TokenType.STMT_LIST,
+                      Dialect.MS_BASIC | Dialect.BBC | Dialect.SINCLAIR |
+                      Dialect.COMMODORE,
+                      "LIST", is_statement=True),
+
+    "CLEAR": TokenInfo(TokenType.STMT_CLEAR, TokenType.STMT_CLEAR,
+                       Dialect.MS_BASIC | Dialect.BBC | Dialect.SINCLAIR |
+                       Dialect.COMMODORE,
+                       "CLEAR", is_statement=True),
+
+    "FILES": TokenInfo(TokenType.STMT_FILES, TokenType.STMT_FILES,
+                       Dialect.MS_BASIC | Dialect.BBC,
+                       "FILES", is_statement=True),
+
+    "OPEN": TokenInfo(TokenType.STMT_OPEN, TokenType.STMT_OPEN,
+                      Dialect.MS_BASIC | Dialect.QBASIC,
+                      "OPEN", is_statement=True),
+
+    "CLOSE": TokenInfo(TokenType.STMT_CLOSE, TokenType.STMT_CLOSE,
+                       Dialect.MS_BASIC | Dialect.QBASIC,
+                       "CLOSE", is_statement=True),
+
+    "WRITE": TokenInfo(TokenType.STMT_WRITE, TokenType.STMT_WRITE,
+                       Dialect.MS_BASIC | Dialect.QBASIC,
+                       "WRITE", is_statement=True),
+
+    "ERROR": TokenInfo(TokenType.STMT_ERROR, TokenType.STMT_ERROR,
+                       Dialect.BBC | Dialect.QBASIC,
+                       "ERROR", is_statement=True),
+
+    "ERASE": TokenInfo(TokenType.STMT_ERASE, TokenType.STMT_ERASE,
+                       Dialect.MS_BASIC | Dialect.QBASIC,
+                       "ERASE", is_statement=True),
+
+    "SWAP": TokenInfo(TokenType.STMT_SWAP, TokenType.STMT_SWAP,
+                      Dialect.QBASIC,
+                      "SWAP", is_statement=True),
+
+    "LOCATE": TokenInfo(TokenType.STMT_LOCATE, TokenType.STMT_LOCATE,
+                        Dialect.QBASIC,
+                        "LOCATE", is_statement=True),
+
+    "CLS": TokenInfo(TokenType.STMT_CLS, TokenType.STMT_CLS,
+                     Dialect.MS_BASIC | Dialect.QBASIC | Dialect.BBC |
+                     Dialect.SINCLAIR,
+                     "CLS", is_statement=True),
+
+    "COLOR": TokenInfo(TokenType.STMT_COLOR, TokenType.STMT_COLOR,
+                       Dialect.MS_BASIC | Dialect.QBASIC,
+                       "COLOR", is_statement=True),
+
+    "SCREEN": TokenInfo(TokenType.STMT_SCREEN, TokenType.STMT_SCREEN,
+                        Dialect.MS_BASIC | Dialect.QBASIC | Dialect.MSX,
+                        "SCREEN", is_statement=True),
+
+    "MODE": TokenInfo(TokenType.STMT_MODE, TokenType.STMT_MODE,
+                      Dialect.BBC,
+                      "MODE", is_statement=True),
+
+    "WINDOW": TokenInfo(TokenType.STMT_WINDOW, TokenType.STMT_WINDOW,
+                        Dialect.MS_BASIC | Dialect.QBASIC,
+                        "WINDOW", is_statement=True),
+
+    "VIEW": TokenInfo(TokenType.STMT_VIEW, TokenType.STMT_VIEW,
+                      Dialect.BBC,
+                      "VIEW", is_statement=True),
+
+    "PLOT": TokenInfo(TokenType.STMT_PLOT, TokenType.STMT_PLOT,
+                      Dialect.BBC | Dialect.SINCLAIR,
+                      "PLOT", is_statement=True),
+
+    "PSET": TokenInfo(TokenType.STMT_PSET, TokenType.STMT_PSET,
+                      Dialect.MS_BASIC | Dialect.QBASIC,
+                      "PSET", is_statement=True),
+
+    "LINE": TokenInfo(TokenType.STMT_LINE, TokenType.STMT_LINE,
+                      Dialect.MS_BASIC | Dialect.QBASIC,
+                      "LINE", is_statement=True),
+
+    "CIRCLE": TokenInfo(TokenType.STMT_CIRCLE, TokenType.STMT_CIRCLE,
+                        Dialect.MS_BASIC | Dialect.QBASIC,
+                        "CIRCLE", is_statement=True),
+
+    "PAINT": TokenInfo(TokenType.STMT_PAINT, TokenType.STMT_PAINT,
+                       Dialect.MS_BASIC | Dialect.QBASIC,
+                       "PAINT", is_statement=True),
+
+    "DRAW": TokenInfo(TokenType.STMT_DRAW, TokenType.STMT_DRAW,
+                      Dialect.MS_BASIC | Dialect.QBASIC,
+                      "DRAW", is_statement=True),
+
+    "SOUND": TokenInfo(TokenType.STMT_SOUND, TokenType.STMT_SOUND,
+                       Dialect.MS_BASIC | Dialect.BBC | Dialect.QBASIC,
+                       "SOUND", is_statement=True),
+
+    "BEEP": TokenInfo(TokenType.STMT_BEEP, TokenType.STMT_BEEP,
+                      Dialect.SINCLAIR | Dialect.QBASIC | Dialect.QB64,
+                      "BEEP", is_statement=True),
+
+    "WAIT": TokenInfo(TokenType.STMT_WAIT, TokenType.STMT_WAIT,
+                      Dialect.MS_BASIC | Dialect.QBASIC,
+                      "WAIT", is_statement=True),
+
+    "OUT": TokenInfo(TokenType.STMT_OUT, TokenType.STMT_OUT,
+                     Dialect.MS_BASIC | Dialect.QBASIC,
+                     "OUT", is_statement=True),
+
+    "POKE": TokenInfo(TokenType.STMT_POKE, TokenType.STMT_POKE,
+                      Dialect.MS_BASIC | Dialect.BBC | Dialect.SINCLAIR |
+                      Dialect.COMMODORE | Dialect.QBASIC | Dialect.QB64,
+                      "POKE", is_statement=True),
+
+    "CALL": TokenInfo(TokenType.STMT_CALL, TokenType.STMT_CALL,
+                      Dialect.MS_BASIC | Dialect.AMIGA,
+                      "CALL", is_statement=True),
+
+    "USR": TokenInfo(TokenType.STMT_USR, TokenType.STMT_USR,
+                     Dialect.SINCLAIR | Dialect.COMMODORE,
+                     "USR", is_statement=True),
+
+    "BREAK": TokenInfo(TokenType.STMT_BREAK, TokenType.STMT_BREAK,
+                       Dialect.BBC,
+                       "BREAK", is_statement=True),
+
+    "EDIT": TokenInfo(TokenType.STMT_EDIT, TokenType.STMT_EDIT,
+                      Dialect.BBC,
+                      "EDIT", is_statement=True),
+
+    "QUIT": TokenInfo(TokenType.STMT_QUIT, TokenType.STMT_QUIT,
+                      Dialect.BBC,
+                      "QUIT", is_statement=True),
+
+    "ZAP": TokenInfo(TokenType.STMT_ZAP, TokenType.STMT_ZAP,
+                     Dialect.AMIGA,
+                     "ZAP", is_statement=True),
+
+    # --- Functions ---
+    "ABS": TokenInfo(TokenType.FUNC_ABS, TokenType.FUNC_ABS,
+                     Dialect.MS_BASIC | Dialect.QBASIC | Dialect.BBC |
+                     Dialect.SINCLAIR | Dialect.COMMODORE | Dialect.MSX,
+                     "ABS", is_function=True),
+
+    "ASC": TokenInfo(TokenType.FUNC_ASC, TokenType.FUNC_ASC,
+                     Dialect.MS_BASIC | Dialect.QBASIC | Dialect.BBC |
+                     Dialect.SINCLAIR | Dialect.COMMODORE | Dialect.MSX,
+                     "ASC", is_function=True),
+
+    "ATN": TokenInfo(TokenType.FUNC_ATN, TokenType.FUNC_ATN,
+                     Dialect.MS_BASIC | Dialect.QBASIC | Dialect.BBC |
+                     Dialect.SINCLAIR | Dialect.COMMODORE | Dialect.MSX,
+                     "ATN", is_function=True),
+
+    "COS": TokenInfo(TokenType.FUNC_COS, TokenType.FUNC_COS,
+                     Dialect.MS_BASIC | Dialect.QBASIC | Dialect.BBC |
+                     Dialect.SINCLAIR | Dialect.COMMODORE | Dialect.MSX,
+                     "COS", is_function=True),
+
+    "EXP": TokenInfo(TokenType.FUNC_EXP, TokenType.FUNC_EXP,
+                     Dialect.MS_BASIC | Dialect.QBASIC | Dialect.BBC |
+                     Dialect.SINCLAIR | Dialect.COMMODORE | Dialect.MSX,
+                     "EXP", is_function=True),
+
+    "INT": TokenInfo(TokenType.FUNC_INT, TokenType.FUNC_INT,
+                     Dialect.MS_BASIC | Dialect.QBASIC | Dialect.BBC |
+                     Dialect.SINCLAIR | Dialect.COMMODORE | Dialect.MSX,
+                     "INT", is_function=True),
+
+    "LEN": TokenInfo(TokenType.FUNC_LEN, TokenType.FUNC_LEN,
+                     Dialect.MS_BASIC | Dialect.QBASIC | Dialect.BBC |
+                     Dialect.SINCLAIR | Dialect.COMMODORE | Dialect.MSX,
+                     "LEN", is_function=True),
+
+    "LOG": TokenInfo(TokenType.FUNC_LOG, TokenType.FUNC_LOG,
+                     Dialect.MS_BASIC | Dialect.QBASIC | Dialect.BBC |
+                     Dialect.SINCLAIR | Dialect.COMMODORE | Dialect.MSX,
+                     "LOG", is_function=True),
+
+    "RND": TokenInfo(TokenType.FUNC_RND, TokenType.FUNC_RND,
+                     Dialect.MS_BASIC | Dialect.QBASIC | Dialect.BBC |
+                     Dialect.SINCLAIR | Dialect.COMMODORE | Dialect.MSX,
+                     "RND", is_function=True),
+
+    "SGN": TokenInfo(TokenType.FUNC_SGN, TokenType.FUNC_SGN,
+                     Dialect.MS_BASIC | Dialect.QBASIC | Dialect.BBC |
+                     Dialect.SINCLAIR | Dialect.COMMODORE | Dialect.MSX,
+                     "SGN", is_function=True),
+
+    "SIN": TokenInfo(TokenType.FUNC_SIN, TokenType.FUNC_SIN,
+                     Dialect.MS_BASIC | Dialect.QBASIC | Dialect.BBC |
+                     Dialect.SINCLAIR | Dialect.COMMODORE | Dialect.MSX,
+                     "SIN", is_function=True),
+
+    "SQR": TokenInfo(TokenType.FUNC_SQR, TokenType.FUNC_SQR,
+                     Dialect.MS_BASIC | Dialect.QBASIC | Dialect.BBC |
+                     Dialect.SINCLAIR | Dialect.COMMODORE | Dialect.MSX,
+                     "SQR", is_function=True),
+
+    "TAN": TokenInfo(TokenType.FUNC_TAN, TokenType.FUNC_TAN,
+                     Dialect.MS_BASIC | Dialect.QBASIC | Dialect.BBC |
+                     Dialect.SINCLAIR | Dialect.COMMODORE | Dialect.MSX,
+                     "TAN", is_function=True),
+
+    "VAL": TokenInfo(TokenType.FUNC_VAL, TokenType.FUNC_VAL,
+                     Dialect.MS_BASIC | Dialect.QBASIC | Dialect.BBC,
+                     "VAL", is_function=True),
+
+    "LEFT$": TokenInfo(TokenType.FUNC_LEFT$, TokenType.FUNC_LEFT$,
+                       Dialect.MS_BASIC | Dialect.QBASIC | Dialect.BBC,
+                       "LEFT$", is_function=True),
+
+    "RIGHT$": TokenInfo(TokenType.FUNC_RIGHT$, TokenType.FUNC_RIGHT$,
+                        Dialect.MS_BASIC | Dialect.QBASIC | Dialect.BBC,
+                        "RIGHT$", is_function=True),
+
+    "MID$": TokenInfo(TokenType.FUNC_MID$, TokenType.FUNC_MID$,
+                      Dialect.MS_BASIC | Dialect.QBASIC | Dialect.BBC,
+                      "MID$", is_function=True),
+
+    "STR$": TokenInfo(TokenType.FUNC_STR$, TokenType.FUNC_STR$,
+                      Dialect.MS_BASIC | Dialect.QBASIC | Dialect.BBC,
+                      "STR$", is_function=True),
+
+    "SPACE$": TokenInfo(TokenType.FUNC_SPACE$, TokenType.FUNC_SPACE$,
+                        Dialect.MS_BASIC | Dialect.QBASIC | Dialect.BBC,
+                        "SPACE$", is_function=True),
+
+    "STRING$": TokenInfo(TokenType.FUNC_STRING$, TokenType.FUNC_STRING$,
+                         Dialect.MS_BASIC | Dialect.QBASIC,
+                         "STRING$", is_function=True),
+
+    "CHR$": TokenInfo(TokenType.FUNC_CHR$, TokenType.FUNC_CHR$,
+                      Dialect.MS_BASIC | Dialect.QBASIC | Dialect.BBC |
+                      Dialect.SINCLAIR | Dialect.COMMODORE | Dialect.MSX,
+                      "CHR$", is_function=True),
+
+    "INSTR": TokenInfo(TokenType.FUNC_INSTR, TokenType.FUNC_INSTR,
+                       Dialect.MS_BASIC | Dialect.QBASIC,
+                       "INSTR", is_function=True),
+
+    "HEX$": TokenInfo(TokenType.FUNC_HEX$, TokenType.FUNC_HEX$,
+                      Dialect.BBC,
+                      "HEX$", is_function=True),
+
+    "BIN$": TokenInfo(TokenType.FUNC_BIN$, TokenType.FUNC_BIN$,
+                      Dialect.BBC,
+                      "BIN$", is_function=True),
+
+    "FIX": TokenInfo(TokenType.FUNC_FIX, TokenType.FUNC_FIX,
+                     Dialect.BBC,
+                     "FIX", is_function=True),
+
+    "EOF": TokenInfo(TokenType.FUNC_EOF, TokenType.FUNC_EOF,
+                     Dialect.MS_BASIC | Dialect.QBASIC,
+                     "EOF", is_function=True),
+
+    "FRE": TokenInfo(TokenType.FUNC_FRE, TokenType.FUNC_FRE,
+                     Dialect.MS_BASIC | Dialect.QBASIC,
+                     "FRE", is_function=True),
+
+    "TIME": TokenInfo(TokenType.FUNC_TIME, TokenType.FUNC_TIME,
+                      Dialect.MS_BASIC | Dialect.QBASIC | Dialect.BBC,
+                      "TIME", is_function=True),
+
+    "INKEY$": TokenInfo(TokenType.FUNC_INKEY$, TokenType.FUNC_INKEY$,
+                        Dialect.BBC | Dialect.SINCLAIR | Dialect.QBASIC,
+                        "INKEY$", is_function=True),
+
+    "PEEK": TokenInfo(TokenType.FUNC_PEEK, TokenType.FUNC_PEEK,
+                      Dialect.MS_BASIC | Dialect.BBC | Dialect.SINCLAIR |
+                      Dialect.COMMODORE | Dialect.QBASIC | Dialect.QB64,
+                      "PEEK", is_function=True),
+
+    # --- Operators / special keywords ---
+    "AND": TokenInfo(TokenType.OP_AND, TokenType.OP_AND,
+                     Dialect.MS_BASIC | Dialect.QBASIC | Dialect.BBC |
+                     Dialect.SINCLAIR | Dialect.COMMODORE | Dialect.MSX,
+                     "AND", is_operator=True),
+
+    "OR": TokenInfo(TokenType.OP_OR, TokenType.OP_OR,
+                    Dialect.MS_BASIC | Dialect.QBASIC | Dialect.BBC |
+                    Dialect.SINCLAIR | Dialect.COMMODORE | Dialect.MSX,
+                    "OR", is_operator=True),
+
+    "NOT": TokenInfo(TokenType.OP_NOT, TokenType.OP_NOT,
+                     Dialect.MS_BASIC | Dialect.QBASIC | Dialect.BBC |
+                     Dialect.SINCLAIR | Dialect.COMMODORE | Dialect.MSX,
+                     "NOT", is_operator=True),
+
+    "XOR": TokenInfo(TokenType.OP_XOR, TokenType.OP_XOR,
+                     Dialect.BBC | Dialect.QBASIC | Dialect.QB64,
+                     "XOR", is_operator=True),
+
+    "TO": TokenInfo(TokenType.OP_TO, TokenType.OP_TO,
+                    Dialect.MS_BASIC | Dialect.QBASIC | Dialect.BBC |
+                    Dialect.SINCLAIR | Dialect.COMMODORE | Dialect.MSX,
+                    "TO", is_operator=True),
+
+    "STEP": TokenInfo(TokenType.OP_STEP, TokenType.OP_STEP,
+                      Dialect.MS_BASIC | Dialect.QBASIC | Dialect.BBC |
+                      Dialect.SINCLAIR | Dialect.COMMODORE | Dialect.MSX,
+                      "STEP", is_operator=True),
+
+    "THEN": TokenInfo(TokenType.OP_THEN, TokenType.OP_THEN,
+                      Dialect.MS_BASIC | Dialect.QBASIC | Dialect.BBC |
+                      Dialect.SINCLAIR | Dialect.COMMODORE | Dialect.MSX,
+                      "THEN", is_operator=True),
+
+    "TAB": TokenInfo(TokenType.OP_TAB, TokenType.OP_TAB,
+                     Dialect.MS_BASIC | Dialect.QBASIC | Dialect.BBC,
+                     "TAB", is_operator=True),
+
+    "SPC": TokenInfo(TokenType.OP_SPC, TokenType.OP_SPC,
+                     Dialect.MS_BASIC | Dialect.QBASIC,
+                     "SPC", is_operator=True),
+
+    "USING": TokenInfo(TokenType.OP_USING, TokenType.OP_USING,
+                       Dialect.MS_BASIC | Dialect.QBASIC,
+                       "USING", is_operator=True),
+
+    "PAPER": TokenInfo(TokenType.OP_PAPER, TokenType.OP_PAPER,
+                       Dialect.SINCLAIR,
+                       "PAPER", is_operator=True),
+
+    "GRAPHICS": TokenInfo(TokenType.OP_GRAPHICS, TokenType.OP_GRAPHICS,
+                          Dialect.BBC,
+                          "GRAPHICS", is_operator=True),
+
+    "VDU": TokenInfo(TokenType.OP_VDU, TokenType.OP_VDU,
+                     Dialect.BBC,
+                     "VDU", is_operator=True),
+
+    "ENV": TokenInfo(TokenType.OP_ENV, TokenType.OP_ENV,
+                     Dialect.BBC,
+                     "ENV", is_operator=True),
+
+    "KEY": TokenInfo(TokenType.OP_KEY, TokenType.OP_KEY,
+                     Dialect.BBC,
+                     "KEY", is_operator=True),
+
+    "JOY": TokenInfo(TokenType.OP_JOY, TokenType.OP_JOY,
+                     Dialect.BBC,
+                     "JOY", is_operator=True),
+
+    "NULL": TokenInfo(TokenType.OP_NULL, TokenType.OP_NULL,
+                      Dialect.MS_BASIC | Dialect.QBASIC,
+                      "NULL", is_operator=True),
+}
+
+
+def lookup_token(keyword: str) -> TokenInfo | None:
+    """Case‑insensitive token lookup."""
+    return TOKENS.get(keyword.upper())
